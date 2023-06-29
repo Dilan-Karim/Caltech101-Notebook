@@ -463,9 +463,108 @@ plt.show()
     
 
 
+## Training des neuronalen Netzwerks: Eine Zusammenfassung
+
+In den Trainingsergebnissen unseres neuronalen Netzwerks sehen wir, dass das Training funktioniert und die Genauigkeit für den Trainingsdatensatz, wie erwartet, höher ist. 
+
+Aber was wir nach 8 Epochen beobachten, ist, dass der Verlust für den Validierungsdatensatz sogar ansteigt, während das Training den Verlust immer weiter verbessert. Dieses Verhalten lässt uns nicht mit Sicherheit sagen, was genau passiert, aber die Annahme liegt nahe, dass unser neuronales Netzwerk groß genug ist, um die Beispiele zu "merken".
+
+Wenn wir das Training zu lange laufen lassen, scheint es, dass das Netzwerk beginnt, die Bilder zu memorieren, anstatt die Charakteristiken in den Bildern zu lernen. Das ist nicht unser Ziel. Wir wollen, dass das Modell bisher nicht gesehene Bilder erkennt und nicht nur die Trainingsbilder.
+
+Wie können wir das verhindern? 
+
+Es gibt einige Strategien, um dieses Problem zu beheben. Erstens könnten wir ein sogenanntes "Early Stopping" implementieren. Dies würde das Training stoppen, sobald der Verlust auf dem Validierungsdatensatz ansteigt, um zu verhindern, dass das Modell die Trainingsbilder zu sehr "auswendig lernt". 
+
+Zweitens könnten wir einen größeren Datensatz verwenden, sodass das Netzwerk weniger oft den gleichen Bildern ausgesetzt ist und die Strategie, Bilder zu memorieren, weniger attraktiv wäre. 
+
+Schließlich haben wir bereits zu Beginn eine zufällige Transformation implementiert. Dieser Ansatz hilft ebenfalls bei der Bekämpfung von "Overfitting". Overfitting ist der Fachbegriff für das Phänomen, dass ein Modell die Trainingsdaten zu gut "lernt" und dadurch schlechter auf neuen, bisher nicht gesehenen Daten abschneidet.
+
+
+## Leistung des Netzwerks
+
+Unser neuronales Netzwerk hat auf dem Caltech101-Datensatz eine Genauigkeit von etwa 50% erzielt. Dies mag auf den ersten Blick nicht besonders hoch erscheinen, insbesondere wenn man es mit binären Klassifikationsproblemen vergleicht, bei denen Genauigkeiten von über 90% üblich sind. Bei der Betrachtung dieser Zahl muss jedoch der Kontext berücksichtigt werden. 
+
+In unserem Fall handelt es sich um ein Multiklassen-Klassifikationsproblem mit 101 verschiedenen Klassen. In solchen Fällen kann eine Genauigkeit von 50% tatsächlich als bemerkenswert angesehen werden, insbesondere wenn man bedenkt, dass ein Zufallsklassifikator, der nur zufällig Vorhersagen trifft, eine Genauigkeit von weniger als 1% erreichen würde. 
+
+In diesem Sinne hat unser Netzwerk seine Fähigkeit unter Beweis gestellt, Muster und Merkmale in den Bilddaten zu erkennen und zu lernen, die ihm ermöglichen, Vorhersagen zu treffen, die weit über dem Zufall liegen.
+
+Als zusätzlichen Leistungstest haben wir unser Netzwerk verwendet, um acht Beispielbilder zu klassifizieren. Die meisten dieser Vorhersagen waren korrekt, was die Fähigkeit unseres Modells bestätigt, effektive und genaue Vorhersagen auf neuen, bisher nicht gesehenen Daten zu treffen. 
+
+Interessant ist auch das Maß an "Confidence" oder Zuversicht, das unser Modell in seinen Vorhersagen zeigt. Einige der Bilder wurden mit hoher Zuversicht richtig klassifiziert, während bei anderen Bildern das Modell weniger sicher war. Dies unterstreicht die Tatsache, dass unser Modell nicht nur Vorhersagen treffen kann, sondern auch ein gewisses Maß an "Unsicherheit" oder "Zweifel" in seinen Vorhersagen ausdrückt. Dies könnte in vielen Anwendungen, bei denen es wichtig ist, den Grad der Unsicherheit in den Vorhersagen des Modells zu kennen, von großem Nutzen sein.
+
+Insgesamt demonstriert die Leistung unseres Modells die Wirksamkeit neuronaler Netzwerke bei der Lösung von komplexen Bildklassifikationsproblemen, auch wenn es immer Raum für Verbesserungen und Optimierungen gibt.
+
 
 
 
 ```python
+import torch.nn.functional as F
+
+# Get one batch of images and labels
+images, labels = next(iter(val_loader))
+
+# Get the model's predictions
+model.eval()  # Switch model to evaluation mode
+images = images.to(device)
+output = model(images)
+_, predicted = tc.max(output.data, 1)
+
+# Compute softmax for each output score
+softmax_output = F.softmax(output.data, dim=1)
+
+# Get the confidence (max probability) of each prediction
+confidences = tc.max(softmax_output, 1)[0].detach().cpu().numpy()
+
+# Switch back to cpu and convert to numpy for plotting
+images = images.cpu().numpy()
+predicted = predicted.cpu().numpy()
+labels = labels.cpu().numpy() # Switch labels back to cpu and convert to numpy
+
+# Get class names
+class_names = caltech_data.annotation_categories
+
+# Plot eight examples in 2 rows and 4 columns
+fig, axes = plt.subplots(2, 4, figsize=(15, 10))
+
+for i, ax in enumerate(axes.flatten()):
+    # Convert image from tensor format (we also need to transpose the axes)
+    img = np.transpose(images[i] / 2 + 0.5, (1, 2, 0))
+    
+    # Display image and label
+    ax.imshow(img)
+    ax.set_title(f"Predicted: {class_names[predicted[i]]}\nConfidence: {confidences[i]*100:.2f}%", size=10)
+    ax.axis("off")
+
+plt.tight_layout()
+plt.show()
 
 ```
+
+
+    
+![png](ML-Tutorial_files/ML-Tutorial_21_0.png)
+    
+
+
+# Fazit
+
+In diesem Notebook haben wir den Prozess des Trainierens eines neuronalen Netzwerks mit PyTorch und TorchVision durchlaufen. Wir haben die Caltech101 Datenbank verwendet und ein Modell trainiert, um zwischen 101 verschiedenen Kategorien von Bildern zu unterscheiden.
+
+Während unser Modell gute Ergebnisse auf den Trainingsdaten zeigte, stießen wir auf das Phänomen des Overfitting. Wir diskutierten Strategien zur Bekämpfung von Overfitting, darunter die Implementierung von Early Stopping, die Verwendung größerer Datensätze und die Einführung von zufälligen Transformationen in unserem Daten-Loader.
+
+Zusammenfassend lässt sich sagen, dass dieses Notebook einen guten Einstieg in das Training neuronaler Netzwerke mit PyTorch und TorchVision bietet. Es hat jedoch auch deutlich gemacht, dass die Arbeit eines Data Scientists oder Maschinenlern-Experten nie wirklich endet: Es gibt immer Raum für Verbesserungen und Optimierungen, um bessere Modelle zu entwickeln und bessere Ergebnisse zu erzielen.
+
+## Ausblick
+
+Es gibt noch viele Aspekte, die es sich lohnt, in Zukunft genauer zu betrachten. Hier sind einige Vorschläge:
+
+- **Feinabstimmung des Modells:** Wir haben ein vortrainiertes Netzwerk verwendet und nur die Ausgabeschicht neu trainiert. Eine Möglichkeit zur Verbesserung der Ergebnisse könnte darin bestehen, das gesamte Modell auf unseren speziellen Datensatz "fein abzustimmen". 
+- **Andere Modelle ausprobieren:** Es gibt viele verschiedene Arten von Modellen und Architekturen, die in unterschiedlichen Situationen gut funktionieren können. Es wäre interessant, verschiedene Modelle auszuprobieren und zu sehen, wie sie sich auf unserem Datensatz verhalten.
+- **Hyperparameteroptimierung:** Wir haben in diesem Notebook nur einen Satz von Hyperparametern verwendet. Es gibt viele Möglichkeiten, wie diese angepasst werden können, um die Modellleistung zu verbessern. 
+- **Early Stopping implementieren:** Wie bereits diskutiert, könnte die Implementierung von Early Stopping dazu beitragen, Overfitting zu vermeiden und unser Modell robuster gegenüber neuen, bisher nicht gesehenen Daten zu machen. 
+- **Erweiterte Datenvorbereitung:** Neben zufälligen Transformationen könnten wir auch andere Techniken zur Datenaugmentation oder -vorbereitung in Betracht ziehen, um die Vielfalt unserer Trainingsdaten zu erhöhen und Overfitting zu vermeiden.
+- **Verwendung größerer Datensätze:** Je mehr Daten zur Verfügung stehen, desto besser kann das Modell lernen, Muster zu erkennen und zu generalisieren. Es könnte hilfreich sein, den Einsatz größerer oder zusätzlicher Datensätze zu prüfen.
+
+Wir hoffen, dass dieses Notebook ein nützlicher Einstieg in das Training von neuronalen Netzwerken mit PyTorch war und freuen uns auf Ihre zukünftigen Entdeckungen und Erfolge auf diesem Gebiet!
+
+
